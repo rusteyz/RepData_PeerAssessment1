@@ -18,3 +18,55 @@
 
 
 ## Are there differences in activity patterns between weekdays and weekends?
+
+require(plyr)
+ActivityDF <- read.csv("~/datasciencecoursera/ReproducibleResearch/activity.csv")
+FullActivityDF<-ActivityDF
+ActivityDF<-subset(ActivityDF,!is.na(steps))
+DailySteps<-ddply(ActivityDF,.(date), summarize, sum=sum(steps))
+
+hist(DailySteps$sum,main="Daily Steps Histogram",xlab="Daily Steps",breaks=10)
+MeanStepsPerDay<-mean(ActivityDF$steps)
+MedianStepsPerDay<-median(ActivityDF$steps)
+TotalSteps<-sum(ActivityDF$steps)
+
+ddply(ActivityDF,.(date), summarize, mean=mean(steps),median=median(steps))[,c("date","mean","median")]
+
+AverageStepsInterval<-ddply(ActivityDF,.(interval), summarize, mean_steps=mean(steps))
+plot(AverageStepsInterval$interval,AverageStepsInterval$mean_steps,type="l",
+     main="Average Steps Interval Wise", xlab="5 Minutes Interval",ylab='Average Steps Taken')
+
+IntervalMax<-subset(AverageStepsInterval,mean_steps==max((AverageStepsInterval$mean_steps)))$interval
+
+NAActivityDF<-subset(FullActivityDF,is.na(steps))
+
+NAActivityDFValues<-merge(NAActivityDF,AverageStepsInterval)[,c("mean_steps","date","interval")]
+colnames(NAActivityDFValues)<-c("steps","date","interval")
+ActivityDFNew<-rbind(ActivityDF,NAActivityDFValues)
+
+hist(DailySteps$sum,main="Daily Steps Histogram with NA values Replaced",xlab="Daily Steps",breaks=10)
+
+MeanStepsPerDayIMV<-mean(ActivityDFNew$steps)
+MedianStepsPerDayIMV<-median(ActivityDFNew$steps)
+TotalSetpsIMV<-sum(ActivityDFNew$steps)
+
+
+library(lattice)
+ActivityDFNew$date1<-as.Date(ActivityDFNew$date,format="%Y-%m-%d")
+ActivityDFNew$weekday<-weekdays(ActivityDFNew$date1)
+ActivityDFNew$wd_we<-ActivityDFNew$weekday
+for (i in 1:nrow(ActivityDFNew)) {
+        if (ActivityDFNew[i,]$weekday %in% c("Saturday","Sunday"))
+        {
+                ActivityDFNew[i,]$wd_we="weekend"
+        }
+        else 
+        {
+                ActivityDFNew[i,]$wd_we="weekday" 
+        }
+}
+wd_we_avg_steps<-ddply(ActivityDFNew,.(wd_we,interval), summarize, mean=mean(steps))
+wd_we_avg_steps<-transform(wd_we_avg_steps,wd_we=factor(wd_we))
+xyplot(mean~interval | wd_we,data=wd_we_avg_steps, layout=c(1,2),ylab="Number of Steps",type="l")
+
+
