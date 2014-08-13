@@ -1,56 +1,68 @@
-# Reproducible Research: Peer Assessment 1
-
-
 ## Loading and preprocessing the data
 
-
-
-## What is mean total number of steps taken per day?
-
-
-
-## What is the average daily activity pattern?
-
-
-
-## Imputing missing values
-
-
-
-## Are there differences in activity patterns between weekdays and weekends?
-
+```{r loadingdata, echo=TRUE}
 require(plyr)
 ActivityDF <- read.csv("~/datasciencecoursera/ReproducibleResearch/activity.csv")
 FullActivityDF<-ActivityDF
 ActivityDF<-subset(ActivityDF,!is.na(steps))
 DailySteps<-ddply(ActivityDF,.(date), summarize, sum=sum(steps))
-
+```
+## Histogram of total number of step taken per day
+```{r histogram, echo=TRUE, fig.height=4}
 hist(DailySteps$sum,main="Daily Steps Histogram",xlab="Daily Steps",breaks=10)
 MeanStepsPerDay<-mean(ActivityDF$steps)
 MedianStepsPerDay<-median(ActivityDF$steps)
 TotalSteps<-sum(ActivityDF$steps)
-
+````
+## What is mean total number of steps taken per day? 
+```{r meanmedianperday, echo=TRUE}
 ddply(ActivityDF,.(date), summarize, mean=mean(steps),median=median(steps))[,c("date","mean","median")]
+```
 
+### Overall Mean Value - `r MeanStepsPerDay`
+### Overall Median Value - `r MedianStepsPerDay`
+
+## What is the average daily activity pattern?
+
+```{r averagedailyactivity, echo=TRUE, fig.height=4}
 AverageStepsInterval<-ddply(ActivityDF,.(interval), summarize, mean_steps=mean(steps))
 plot(AverageStepsInterval$interval,AverageStepsInterval$mean_steps,type="l",
      main="Average Steps Interval Wise", xlab="5 Minutes Interval",ylab='Average Steps Taken')
+```
 
+
+```{r intervalmaxsteps, echo=TRUE, fig.height=4}
 IntervalMax<-subset(AverageStepsInterval,mean_steps==max((AverageStepsInterval$mean_steps)))$interval
+```
+## Invterval with maximum average number of steps across all days - `r IntervalMax`
 
+## Imputing missing values
+```{r imputingmissingvalues, echo=TRUE,fig.height=4}
 NAActivityDF<-subset(FullActivityDF,is.na(steps))
-
+#Create new data set with replacing NA values with mean steps for the interval
 NAActivityDFValues<-merge(NAActivityDF,AverageStepsInterval)[,c("mean_steps","date","interval")]
 colnames(NAActivityDFValues)<-c("steps","date","interval")
 ActivityDFNew<-rbind(ActivityDF,NAActivityDFValues)
-
+# creating historgram of new activity data
 hist(DailySteps$sum,main="Daily Steps Histogram with NA values Replaced",xlab="Daily Steps",breaks=10)
+```
 
+```{r meanmedianimputing, echo=TRUE}
 MeanStepsPerDayIMV<-mean(ActivityDFNew$steps)
 MedianStepsPerDayIMV<-median(ActivityDFNew$steps)
 TotalSetpsIMV<-sum(ActivityDFNew$steps)
+```
+### Mean and Median steps taken per day after imputing missing values with average interval value
+### Mean Value - `r MeanStepsPerDayIMV`
+### Median Value -`r MedianStepsPerDayIMV`
+Mean and Median values are not impacted by imputing missing values
+Total steps taken with imputing missing values `r TotalSetpsIMV` is greater than
+Total steps taken withoput imputing missing values `r TotalSteps`
+## Are there differences in activity patterns between weekdays and weekends?
 
+### More steps are taken during weekend vs weekdays across all intervals
 
+```{r weekdayweekend, echo=TRUE,fig.height=4}
 library(lattice)
 ActivityDFNew$date1<-as.Date(ActivityDFNew$date,format="%Y-%m-%d")
 ActivityDFNew$weekday<-weekdays(ActivityDFNew$date1)
@@ -68,5 +80,4 @@ for (i in 1:nrow(ActivityDFNew)) {
 wd_we_avg_steps<-ddply(ActivityDFNew,.(wd_we,interval), summarize, mean=mean(steps))
 wd_we_avg_steps<-transform(wd_we_avg_steps,wd_we=factor(wd_we))
 xyplot(mean~interval | wd_we,data=wd_we_avg_steps, layout=c(1,2),ylab="Number of Steps",type="l")
-
-
+```
